@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Insight360 Project Tracker</title>
+<style>
+:root {
+  --bg: #ffffff; --surface: #f5f5f5; --surface2: #ebebeb; --border: #d4d4d4;
+  --text: #1a1a1a; --text2: #555555; --text3: #999999;
+  --danger: #d93025; --warning: #f29900; --positive: #188038;
+  --blue: #1a73e8; --red: #d93025; --green: #188038; --purple: #9334e6; --neutral: #5f6368;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a; --surface: #2a2a2a; --surface2: #3a3a3a; --border: #444444;
+    --text: #e8e8e8; --text2: #b0b0b0; --text3: #777777;
+  }
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg); color: var(--text); padding: 16px; max-width: 720px; margin: 0 auto;
+  -webkit-tap-highlight-color: transparent;
+}
+button, input, select { font: inherit; cursor: pointer; }
+.topbar { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.save-indicator { font-size: 12px; color: var(--text3); margin-left: auto; display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.15s ease; }
+.save-indicator.show { opacity: 1; }
+.save-indicator svg { width: 12px; height: 12px; }
+.undo-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; display: none; align-items: center; gap: 4px; }
+.undo-btn.show { display: flex; }
+.undo-btn:hover { background: var(--surface2); }
+.undo-btn svg { width: 13px; height: 13px; }
+.top-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 12px; display: flex; align-items: center; gap: 4px; }
+.top-btn:hover { background: var(--surface2); }
+.top-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+.top-btn svg { width: 13px; height: 13px; }
+.progress { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; padding: 12px 16px; border-radius: 12px; background: var(--surface); }
+.progress-bar { flex: 1; height: 6px; border-radius: 3px; background: var(--surface2); overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; background: var(--text); transition: width 0.25s ease; }
+.progress-label { font-size: 13px; color: var(--text2); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+.tab { padding: 6px 12px; border-radius: 6px; border: none; background: transparent; color: var(--text2); font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.tab:hover { background: var(--surface); color: var(--text); }
+.tab.active { background: var(--text); color: var(--bg); }
+.tab .count { font-size: 12px; background: var(--surface2); border-radius: 10px; padding: 1px 7px; color: var(--text2); }
+.tab.active .count { background: rgba(128,128,128,0.3); color: inherit; }
+.filter-row { display: flex; gap: 8px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+.filter-label { font-size: 12px; color: var(--text3); }
+.filter-row select { padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; outline: none; }
+.search-input { flex: 1; min-width: 140px; padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 13px; outline: none; }
+.search-input:focus { border-color: var(--text); }
+.alert-banner { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: 10px; margin-bottom: 10px; font-size: 13px; background: rgba(217,48,37,0.10); color: var(--danger); border: 1px solid rgba(217,48,37,0.3); }
+.alert-banner.today { background: rgba(242,153,0,0.12); color: var(--warning); border-color: rgba(242,153,0,0.35); }
+.alert-banner svg { width: 15px; height: 15px; flex-shrink: 0; }
+.bulk-bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; border-radius: 10px; background: var(--surface); margin-bottom: 10px; flex-wrap: wrap; font-size: 13px; color: var(--text2); }
+.bulk-bar select { padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; outline: none; }
+.bulk-bar button { padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; }
+.bulk-bar button:hover { background: var(--surface2); }
+.bulk-bar button.danger { color: var(--danger); }
+.list { display: flex; flex-direction: column; gap: 6px; }
+.item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); }
+.item:hover { background: var(--surface); }
+.item.done { opacity: 0.55; }
+.item.done .txt { text-decoration: line-through; }
+.item.selected { border-color: var(--blue); background: rgba(26,115,232,0.06); }
+.item.dragging { opacity: 0.4; }
+.item.drag-over { border-top: 2px solid var(--blue); }
+.check { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--text3); background: transparent; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; padding: 0; }
+.check.on { background: var(--text); border-color: var(--text); }
+.check svg { width: 14px; height: 14px; color: var(--bg); opacity: 0; }
+.check.on svg { opacity: 1; }
+.sel-box { width: 22px; height: 22px; border-radius: 6px; border: 1.5px solid var(--blue); background: transparent; flex-shrink: 0; margin-top: 1px; display: flex; align-items: center; justify-content: center; padding: 0; }
+.sel-box.on { background: var(--blue); }
+.sel-box svg { width: 14px; height: 14px; color: #fff; opacity: 0; }
+.sel-box.on svg { opacity: 1; }
+.drag-handle { cursor: grab; color: var(--text3); flex-shrink: 0; margin-top: 2px; display: flex; align-items: center; padding: 2px; touch-action: none; }
+.drag-handle svg { width: 14px; height: 14px; }
+.body { flex: 1; min-width: 0; }
+.txt { font-size: 15px; line-height: 22px; word-wrap: break-word; }
+.meta { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; align-items: center; }
+.tag { font-size: 12px; padding: 2px 8px; border-radius: 6px; font-weight: 500; }
+.tag.p1 { background: rgba(217,48,37,0.12); color: var(--danger); }
+.tag.p2 { background: rgba(242,153,0,0.14); color: var(--warning); }
+.tag.p3 { background: var(--surface2); color: var(--text2); }
+.tag.personal { background: rgba(147,52,230,0.12); color: var(--purple); }
+.tag.client { background: rgba(26,115,232,0.12); color: var(--blue); }
+.tag.lead { background: rgba(217,48,37,0.10); color: var(--red); }
+.tag.mrk { background: rgba(24,128,56,0.14); color: var(--green); }
+.tag.tolu { background: rgba(95,99,104,0.16); color: var(--neutral); }
+.tag.femi { background: rgba(26,115,232,0.08); color: var(--blue); }
+.tag.ddna { background: rgba(217,48,37,0.08); color: var(--red); }
+.tag.studios { background: var(--surface2); color: var(--text); }
+.tag.lidstores { background: rgba(24,128,56,0.10); color: var(--green); }
+.tag.nadissa { background: rgba(147,52,230,0.08); color: var(--purple); }
+.tag.other { background: transparent; border: 1px solid var(--border); color: var(--text3); }
+.tag.custom { background: rgba(26,115,232,0.10); color: var(--blue); }
+.tag.deadline { background: var(--surface2); color: var(--text2); }
+.tag.deadline.overdue { background: rgba(217,48,37,0.12); color: var(--danger); font-weight: 600; }
+.tag.deadline.duetoday { background: rgba(242,153,0,0.16); color: var(--warning); font-weight: 600; }
+.pri-btn { border: none; background: transparent; padding: 2px 4px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+.pri-btn:hover { background: var(--surface2); }
+.pri-btn.p1 { color: var(--danger); } .pri-btn.p2 { color: var(--warning); } .pri-btn.p3 { color: var(--text2); }
+.meta select { padding: 2px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px; outline: none; }
+.meta input[type="date"] { padding: 2px 4px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px; outline: none; max-width: 130px; }
+.actions { display: flex; gap: 2px; align-items: center; flex-shrink: 0; }
+.icon-btn { width: 30px; height: 30px; border-radius: 8px; border: none; background: transparent; display: flex; align-items: center; justify-content: center; color: var(--text3); padding: 0; }
+.icon-btn:hover { background: var(--surface2); color: var(--text); }
+.icon-btn.danger:hover { background: rgba(217,48,37,0.12); color: var(--danger); }
+.icon-btn svg { width: 16px; height: 16px; }
+.stage-select { padding: 4px 6px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px; outline: none; max-width: 110px; }
+.edit-row { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.edit-row input { flex: 1; min-width: 120px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; outline: none; }
+.add-row { display: flex; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); flex-wrap: wrap; }
+.add-row input[type="text"] { flex: 1; min-width: 140px; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text); font-size: 14px; outline: none; }
+.add-row input[type="text"]:focus { border-color: var(--text); }
+.add-row input[type="date"] { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; outline: none; }
+.add-row select { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; outline: none; }
+.add-btn { padding: 8px 16px; border-radius: 10px; border: none; background: var(--text); color: var(--bg); font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+.add-btn svg { width: 16px; height: 16px; }
+.mic-btn { padding: 8px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text2); display: flex; align-items: center; justify-content: center; }
+.mic-btn.recording { background: rgba(217,48,37,0.12); color: var(--danger); border-color: var(--danger); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+.mic-btn svg { width: 18px; height: 18px; }
+.mic-status { font-size: 12px; color: var(--text3); margin-top: 6px; display: none; }
+.mic-status.show { display: block; }
+.mic-status.error { color: var(--danger); }
+.empty { text-align: center; padding: 32px 16px; color: var(--text3); font-size: 14px; }
+.export-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.export-btn { flex: 1; min-width: 120px; padding: 8px; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text2); font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.export-btn:hover { background: var(--surface); color: var(--text); }
+.export-btn.danger:hover { background: rgba(217,48,37,0.10); color: var(--danger); }
+.export-btn svg { width: 15px; height: 15px; }
+.reminder-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: var(--surface); flex-wrap: wrap; font-size: 13px; color: var(--text2); }
+.reminder-row svg { width: 15px; height: 15px; }
+.reminder-row input[type="time"] { padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 13px; outline: none; }
+.reminder-row button { padding: 4px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 12px; }
+.reminder-row button:hover { background: var(--surface2); }
+.reminder-note { font-size: 11px; color: var(--text3); width: 100%; }
+</style>
+<base target="_blank">
+</head>
+<body>
+<div id="app"></div>
+<input type="file" id="importFile" accept="application/json,.json" style="display:none">
+
+<script>
+const STORAGE_KEY = 'insight360_tracker_v6';
+const CATS = [
+  { id: 'today', label: 'Today' },
+  { id: 'week', label: 'This week' },
+  { id: 'ongoing', label: 'Ongoing' },
+  { id: 'waiting', label: 'Waiting on' },
+  { id: 'pipeline', label: 'Pipeline' },
+  { id: 'done', label: 'Completed' }
+];
+
+const PRI = { p1: 'P1', p2: 'P2', p3: 'P3' };
+const PRI_ORDER = ['p1', 'p2', 'p3'];
+
+const BASE_PROJS = {
+  personal: 'Personal', client: 'Client', lead: 'Lead-loading', mrk: 'Mr K',
+  tolu: 'Tolu', femi: 'Femi', ddna: 'DDNA', studios: 'Studios',
+  lidstores: 'Lidstores', nadissa: 'Nadissa', other: 'Other'
+};
+const CUSTOM_PALETTE = ['custom'];
+
+let PROJS = Object.assign({}, BASE_PROJS);
+let PROJ_ORDER = Object.keys(BASE_PROJS);
+
+const DEFAULT_ITEMS = [
+  { id: 1, cat: 'today', txt: 'Finish reading Mirrors documents', pri: 'p1', proj: 'mrk' },
+  { id: 2, cat: 'today', txt: 'Reply all mails', pri: 'p2', proj: 'personal' },
+  { id: 3, cat: 'today', txt: 'Reply Prince Irawo document & update on masterclass', pri: 'p1', proj: 'client' },
+  { id: 4, cat: 'today', txt: 'Call Detu', pri: 'p1', proj: 'client' },
+  { id: 5, cat: 'today', txt: 'Get Tessy\'s phone', pri: 'p2', proj: 'personal' },
+  { id: 6, cat: 'today', txt: 'Edit Budweiser (in progress)', pri: 'p1', proj: 'client' },
+  { id: 7, cat: 'today', txt: 'Study AI pages Tessy gave you', pri: 'p3', proj: 'personal' },
+  { id: 8, cat: 'today', txt: 'Study job pages Serah gave you', pri: 'p3', proj: 'personal' },
+  { id: 9, cat: 'today', txt: 'Create invoices for Lidstore & Nadisaa', pri: 'p1', proj: 'studios' },
+  { id: 10, cat: 'today', txt: 'Create Getabar advert vid — Japanese-style twist reveal', pri: 'p2', proj: 'client' },
+  { id: 11, cat: 'today', txt: 'Artist Spotlight Series — interview Fresh VDM (producer)', pri: 'p3', proj: 'studios' },
+  { id: 12, cat: 'today', txt: 'Create bizness partnership with Eguolo', pri: 'p2', proj: 'lead' },
+  { id: 13, cat: 'today', txt: 'Create bizness partnership with The Luxe (official event planner)', pri: 'p2', proj: 'lead' },
+  { id: 14, cat: 'today', txt: 'Study website backend Fortune gave access to', pri: 'p2', proj: 'studios' },
+  { id: 15, cat: 'today', txt: 'Sit with the Milla mix plans', pri: 'p2', proj: 'client' },
+  { id: 16, cat: 'today', txt: 'Finish Mirrors Demo', pri: 'p1', proj: 'mrk' },
+  { id: 17, cat: 'today', txt: 'Check in with Fortune on site progress', pri: 'p2', proj: 'studios' },
+  { id: 18, cat: 'today', txt: 'Study investfest & teaching solutions for podcast value', pri: 'p3', proj: 'personal' },
+  { id: 19, cat: 'today', txt: 'Create podcast "The Boy\'s Room" (w/ Choppa & Mikey)', pri: 'p3', proj: 'personal' },
+  { id: 20, cat: 'today', txt: 'Prep Carbon proposal & analysis documents', pri: 'p1', proj: 'lead' },
+  { id: 21, cat: 'today', txt: 'Create & send Mikey "A Landmark Documentary Idea"', pri: 'p1', proj: 'personal' },
+  { id: 22, cat: 'today', txt: 'Deep-dive the online bizness/website Kimi created', pri: 'p2', proj: 'personal' },
+  { id: 23, cat: 'today', txt: 'Talk to Fortune on integrating process into new company', pri: 'p2', proj: 'studios' },
+  { id: 24, cat: 'today', txt: 'Build marketing AI pipeline for Insight360 itself', pri: 'p2', proj: 'studios' },
+  { id: 25, cat: 'today', txt: 'Speak to Joba — Landmark Man doc on his boss', pri: 'p3', proj: 'lead' },
+  { id: 26, cat: 'today', txt: 'Explore iSight funding opportunities', pri: 'p3', proj: 'studios' },
+  { id: 27, cat: 'today', txt: 'Put Tai on Getabar, Mirrors & Mr K map projects', pri: 'p2', proj: 'mrk' },
+  { id: 28, cat: 'today', txt: 'Create Mr K map with Seyi', pri: 'p2', proj: 'mrk' },
+  { id: 29, cat: 'today', txt: 'Print consent form for Victoria', pri: 'p2', proj: 'studios' },
+  { id: 30, cat: 'today', txt: 'Finish Vouchers edit', pri: 'p1', proj: 'client' },
+  { id: 31, cat: 'today', txt: 'Call Femi for Mr K / Insight360 documentation', pri: 'p2', proj: 'femi' },
+  { id: 32, cat: 'today', txt: 'Create script for Insight360 introduction video', pri: 'p2', proj: 'studios' },
+  { id: 33, cat: 'today', txt: 'Create studio assets Google Drive (or Zoho equivalent)', pri: 'p3', proj: 'studios' },
+  { id: 34, cat: 'today', txt: 'Build Getabar plans out', pri: 'p2', proj: 'client' },
+  { id: 35, cat: 'today', txt: 'Work on Mariam\'s document in Kimi', pri: 'p2', proj: 'client' },
+  { id: 36, cat: 'today', txt: 'Kingsley photoshoot (Wednesday)', pri: 'p1', proj: 'client', dl: 'Wed' },
+  { id: 37, cat: 'today', txt: 'Mariam photoshoot (Thursday)', pri: 'p1', proj: 'client', dl: 'Thu' },
+  { id: 38, cat: 'today', txt: 'Naija Go vids', pri: 'p1', proj: 'client' },
+  { id: 39, cat: 'today', txt: 'Carbon proposals & docs', pri: 'p1', proj: 'lead' },
+  { id: 40, cat: 'today', txt: 'Finish editing Vouch & find iPhone 14', pri: 'p1', proj: 'client' },
+  { id: 41, cat: 'week', txt: 'Carbon Bank social media pitch meeting (Tuesday, 1st week of Aug)', pri: 'p1', proj: 'lead', dl: 'Tue' },
+  { id: 42, cat: 'week', txt: 'Shoot extra videos for 5x5 campaign', pri: 'p1', proj: 'ddna' },
+  { id: 43, cat: 'week', txt: 'Upload Seyi\'s studio content calendar details to Kimi tracker', pri: 'p2', proj: 'studios' },
+  { id: 44, cat: 'week', txt: 'Track Seyi\'s September retainer calendar', pri: 'p2', proj: 'studios' },
+  { id: 45, cat: 'week', txt: 'Tai working on Insight parent assets, Getabar assets & possibly Mirrors ad', pri: 'p2', proj: 'mrk' },
+  { id: 46, cat: 'week', txt: 'Follow-up meeting with Ms. Fola (Accounts)', pri: 'p1', proj: 'studios', dl: 'Mon 14/09' },
+  { id: 47, cat: 'week', txt: 'Send Getabar script to Tai', pri: 'p2', proj: 'client' },
+  { id: 48, cat: 'week', txt: 'Send assets (video & pictures) to Tai', pri: 'p2', proj: 'mrk' },
+  { id: 49, cat: 'week', txt: 'Send website to Tai', pri: 'p2', proj: 'studios' },
+  { id: 50, cat: 'week', txt: 'Send Insight parent website for Mr K to Tai', pri: 'p2', proj: 'mrk' },
+  { id: 51, cat: 'week', txt: 'Weekly progress report — final week of July 2026', pri: 'p2', proj: 'studios' },
+  { id: 52, cat: 'ongoing', txt: '5x5 Campaign — 5 videos for 5 businesses (promo for Insight360 video capabilities)', pri: 'p1', proj: 'ddna' },
+  { id: 53, cat: 'ongoing', txt: 'Insights Podcast — 2 episodes shot', pri: 'p2', proj: 'studios' },
+  { id: 54, cat: 'ongoing', txt: 'Monthly studio content calendar (Motivation Mondays, Intl Holiday assets, I360 promo, weekly blog)', pri: 'p2', proj: 'studios' },
+  { id: 55, cat: 'ongoing', txt: 'Insight360 social media management', pri: 'p2', proj: 'studios' },
+  { id: 56, cat: 'ongoing', txt: '9ja GO media assets compilation', pri: 'p2', proj: 'client' },
+  { id: 57, cat: 'ongoing', txt: 'Mirrors media generation', pri: 'p1', proj: 'mrk' },
+  { id: 58, cat: 'ongoing', txt: 'Photography promo campaign (40% off)', pri: 'p2', proj: 'studios' },
+  { id: 59, cat: 'ongoing', txt: 'Insight Studio brand audit', pri: 'p3', proj: 'studios' },
+  { id: 60, cat: 'ongoing', txt: 'Insight360 AI workflow pipeline (90% done)', pri: 'p1', proj: 'studios' },
+  { id: 61, cat: 'ongoing', txt: 'Getabar portfolio revival — Tahir on 2 AI video assets', pri: 'p2', proj: 'client' },
+  { id: 62, cat: 'ongoing', txt: 'Website build — Elisha\'s version vs Fortune\'s integration, compare & decide', pri: 'p1', proj: 'studios' },
+  { id: 63, cat: 'ongoing', txt: 'Structural development of Insight360 assets (Tahir, Moses, Bankole)', pri: 'p2', proj: 'studios' },
+  { id: 64, cat: 'ongoing', txt: 'DDNA 5x5 — Tahir producing 5 carousel assets', pri: 'p2', proj: 'ddna' },
+  { id: 65, cat: 'ongoing', txt: 'DDNA 5x5 — Moses & Dare producing 3 video assets', pri: 'p2', proj: 'ddna' },
+  { id: 66, cat: 'ongoing', txt: 'Insight360 website media assets — shooting Mr. Kelechi', pri: 'p2', proj: 'mrk' },
+  { id: 67, cat: 'ongoing', txt: 'Bankole promotional campaign for photoshoot services', pri: 'p3', proj: 'studios' },
+  { id: 68, cat: 'waiting', txt: 'Dare — payroll & financial forecasts created, follow-up w/ Ms. Fola', pri: 'p2', proj: 'studios' },
+  { id: 69, cat: 'waiting', txt: 'Ayo/Ayodeji — website server acquisition', pri: 'p2', proj: 'studios' },
+  { id: 70, cat: 'waiting', txt: 'Josh/DNA — next steps itinerary for 5x5 (6 wks → 11 wks timeframe)', pri: 'p2', proj: 'ddna' },
+  { id: 71, cat: 'waiting', txt: 'Tentative manager for Getabar business — conversations ongoing', pri: 'p3', proj: 'client' },
+  { id: 72, cat: 'waiting', txt: 'Femi, Dare & Emeka — Getabar deployment roadmap', pri: 'p2', proj: 'femi' },
+  { id: 73, cat: 'pipeline', txt: 'Future content: A Mixologist\'s Life', pri: 'p3', proj: 'studios' },
+  { id: 74, cat: 'pipeline', txt: 'Future content: A Landmark Man', pri: 'p3', proj: 'studios' },
+  { id: 75, cat: 'pipeline', txt: 'Future content: Creator\'s Quarter (Vision to Viral w/ Becky Joe)', pri: 'p3', proj: 'studios' },
+  { id: 76, cat: 'pipeline', txt: 'Future content: Spotlight (w/ Milla Mix)', pri: 'p3', proj: 'studios' },
+  { id: 77, cat: 'pipeline', txt: 'Mr K focus: Insight360, Mirrors, Getabar — strategic alignment', pri: 'p2', proj: 'mrk' },
+  { id: 78, cat: 'done', txt: 'Mubarak completed stage 4 of I360 AI pipeline', pri: 'p3', proj: 'studios' },
+  { id: 79, cat: 'done', txt: 'Fitness post uploaded via Shai social media guru on Instagram', pri: 'p3', proj: 'studios' },
+  { id: 80, cat: 'done', txt: 'Facebook page set up & handed to DDNA for 5x5 campaign', pri: 'p3', proj: 'ddna' },
+  { id: 81, cat: 'done', txt: 'Seyi aligned with DNA social media manager on campaign calendar', pri: 'p3', proj: 'ddna' },
+  { id: 82, cat: 'done', txt: 'Photoshoot at I360 Studios (3rd week July) — ₦180,000 revenue', pri: 'p3', proj: 'studios' },
+  { id: 83, cat: 'done', txt: 'Carbon staff took advantage of photoshoot promo offers', pri: 'p3', proj: 'lead' },
+  { id: 84, cat: 'done', txt: 'Lidstore bundle campaign shoot — carried out', pri: 'p3', proj: 'lidstores' },
+  { id: 85, cat: 'done', txt: 'Lidstore promo bundle campaign & content delivered', pri: 'p3', proj: 'lidstores' },
+  { id: 86, cat: 'done', txt: 'Nadisaa stores video assets delivered', pri: 'p3', proj: 'nadissa' },
+  { id: 87, cat: 'done', txt: 'Ken Ella paid photoshoot — finished', pri: 'p3', proj: 'client' },
+  { id: 88, cat: 'done', txt: 'Apostle Obi paid podcast — submitted', pri: 'p3', proj: 'client' },
+  { id: 89, cat: 'done', txt: 'I360 retainership agreement signed by Mr. Kelechi', pri: 'p3', proj: 'mrk' },
+  { id: 90, cat: 'done', txt: 'Dare sit-down with Accounts department', pri: 'p3', proj: 'studios' },
+  { id: 91, cat: 'done', txt: 'Budget feedback received from Mr. Oni', pri: 'p3', proj: 'studios' },
+  { id: 92, cat: 'done', txt: 'Seyi created retainer calendar for September', pri: 'p3', proj: 'studios' },
+  { id: 93, cat: 'done', txt: 'Seyi created studio content calendar', pri: 'p3', proj: 'studios' }
+];
+
+let items = [];
+let activeCat = 'today';
+let editingId = null;
+let nextId = 94;
+let recording = false;
+let recog = null;
+let lastDeleted = null;
+let filterProj = 'all';
+let filterPri = 'all';
+let searchQ = '';
+let selectMode = false;
+let selected = {};
+let saveTimer = null;
+let micStatus = '';
+let micError = false;
+let remindEnabled = false;
+let remindTime = '21:00';
+let lastRemindDate = '';
+let dragId = null;
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      items = data.items || [];
+      nextId = data.nextId || 94;
+      activeCat = data.activeCat || 'today';
+      filterProj = data.filterProj || 'all';
+      filterPri = data.filterPri || 'all';
+      PROJS = Object.assign({}, BASE_PROJS, data.customProjs || {});
+      PROJ_ORDER = Object.keys(PROJS);
+      remindEnabled = !!data.remindEnabled;
+      remindTime = data.remindTime || '21:00';
+      lastRemindDate = data.lastRemindDate || '';
+      return;
+    }
+  } catch(e) {}
+  items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+}
+
+function customProjs() {
+  const c = {};
+  Object.keys(PROJS).forEach(k => { if (!BASE_PROJS[k]) c[k] = PROJS[k]; });
+  return c;
+}
+
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      items, nextId, activeCat, filterProj, filterPri,
+      customProjs: customProjs(), remindEnabled, remindTime, lastRemindDate
+    }));
+    const ind = document.getElementById('saveInd');
+    if (ind) { ind.classList.add('show'); clearTimeout(saveTimer); saveTimer = setTimeout(() => ind.classList.remove('show'), 1500); }
+  } catch(e) {}
+}
+
+const CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M19.3027 5.9053C19.6542 5.55397 20.2247 5.55388 20.5761 5.9053C20.9273 6.25675 20.9273 6.82734 20.5761 7.17874L9.65911 18.0948C9.30773 18.4461 8.73814 18.446 8.38665 18.0948L3.42376 13.1328C3.0726 12.7814 3.07263 12.2118 3.42376 11.8604C3.77524 11.509 4.34575 11.5089 4.6972 11.8604L9.02239 16.1856L19.3027 5.9053Z" fill="currentColor"/></svg>';
+const EDIT_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M18.0179 3.09998C18.3963 3.10003 18.7709 3.17491 19.1205 3.31971C19.4701 3.46454 19.7884 3.67614 20.056 3.94373C20.3237 4.21144 20.5362 4.52965 20.681 4.87928C20.8258 5.22887 20.8997 5.60423 20.8997 5.9828C20.8997 6.36118 20.8257 6.73591 20.681 7.08533C20.5362 7.43497 20.3237 7.75317 20.056 8.02088L17.639 10.4379L9.15756 18.9183C8.5296 19.5463 7.74274 19.992 6.8812 20.2074L4.21811 20.8734C3.91148 20.95 3.5871 20.8596 3.36362 20.6361C3.14017 20.4126 3.05063 20.0883 3.12729 19.7816L3.79233 17.1185C4.00771 16.257 4.45344 15.4701 5.08139 14.8422L15.9798 3.94373C16.5203 3.40346 17.2536 3.09998 18.0179 3.09998ZM19.0003 19.1C19.4972 19.1002 19.8997 19.5034 19.8997 20.0004C19.8995 20.4971 19.4971 20.8996 19.0003 20.8998H12.0003C11.5034 20.8998 11.1001 20.4973 11.0999 20.0004C11.0999 19.5033 11.5033 19.1 12.0003 19.1H19.0003ZM18.0179 4.89979C17.7309 4.89979 17.4553 5.01417 17.2523 5.21717L6.35385 16.1146C5.95661 16.5119 5.67469 17.01 5.53842 17.5551L5.23666 18.7631L6.44467 18.4613C6.98971 18.3251 7.48782 18.0431 7.8851 17.6459L18.7826 6.74744C18.883 6.64702 18.9635 6.52821 19.0179 6.39686C19.0723 6.26558 19.0999 6.1247 19.0999 5.9828C19.0999 5.84075 19.0723 5.69916 19.0179 5.56776C18.9635 5.43645 18.883 5.31757 18.7826 5.21717C18.6821 5.11678 18.5631 5.03716 18.432 4.9828C18.3008 4.92845 18.16 4.89983 18.0179 4.89979Z" fill="currentColor"/></svg>';
+const DEL_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M8.10001 3C8.10001 2.50294 8.50295 2.1 9.00001 2.1H15C15.4971 2.1 15.9 2.50294 15.9 3C15.9 3.49706 15.4971 3.9 15 3.9H9.00001C8.50295 3.9 8.10001 3.49706 8.10001 3Z" fill="currentColor"/><path d="M10 15.9C9.50295 15.9 9.10001 15.4971 9.10001 15L9.10001 10C9.10001 9.50294 9.50295 9.1 10 9.1C10.4971 9.1 10.9 9.50294 10.9 10L10.9 15C10.9 15.4971 10.4971 15.9 10 15.9Z" fill="currentColor"/><path d="M13.1 15C13.1 15.4971 13.5029 15.9 14 15.9C14.4971 15.9 14.9 15.4971 14.9 15L14.9 10C14.9 9.50294 14.4971 9.1 14 9.1C13.5029 9.1 13.1 9.50294 13.1 10V15Z" fill="currentColor"/><path fill-rule="evenodd" clip-rule="evenodd" d="M2.10001 6C2.10001 5.50294 2.50295 5.1 3.00001 5.1H4.99152C4.99785 5.09993 5.00417 5.09993 5.01048 5.1H18.9895C18.9958 5.09993 19.0021 5.09993 19.0085 5.1H21C21.4971 5.1 21.9 5.50294 21.9 6C21.9 6.49706 21.4971 6.9 21 6.9H19.8281L18.8448 18.6993C18.7412 19.9432 17.7013 20.9 16.4531 20.9H7.54686C6.29865 20.9 5.25881 19.9432 5.15515 18.6993L4.17188 6.9H3.00001C2.50295 6.9 2.10001 6.49706 2.10001 6ZM5.97811 6.9L18.0219 6.9L17.0511 18.5498C17.0251 18.8608 16.7652 19.1 16.4531 19.1H7.54686C7.23481 19.1 6.97485 18.8608 6.94893 18.5498L5.97811 6.9Z" fill="currentColor"/></svg>';
+const ADD_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M12.0684 2.03418C12.5654 2.03421 12.9687 2.43755 12.9688 2.93457V11.0996H21.0654C21.5625 11.0996 21.9658 11.503 21.9658 12C21.9658 12.497 21.5625 12.9004 21.0654 12.9004H12.9688V21.0654C12.9687 21.5624 12.5654 21.9658 12.0684 21.9658C11.5713 21.9658 11.168 21.5625 11.168 21.0654V12.9004H2.93457C2.43751 12.9004 2.03418 12.4971 2.03418 12C2.03418 11.5029 2.43751 11.0996 2.93457 11.0996H11.168V2.93457C11.168 2.43753 11.5713 2.03418 12.0684 2.03418Z" fill="currentColor"/></svg>';
+const RIGHT_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M8.7 17.3C8.3 16.9 8.3 16.3 8.7 15.9L13.6 11L8.7 6.1C8.3 5.7 8.3 5.1 8.7 4.7C9.1 4.3 9.7 4.3 10.1 4.7L15.9 10.5C16.3 10.9 16.3 11.5 15.9 11.9L10.1 17.7C9.7 18.1 9.1 18.1 8.7 17.7Z" fill="currentColor"/></svg>';
+const LEFT_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M15.3 6.7C15.7 7.1 15.7 7.7 15.3 8.1L10.4 13L15.3 17.9C15.7 18.3 15.7 18.9 15.3 19.3C14.9 19.7 14.3 19.7 13.9 19.3L8.1 13.5C7.7 13.1 7.7 12.5 8.1 12.1L13.9 6.3C14.3 5.9 14.9 5.9 15.3 6.3Z" fill="currentColor"/></svg>';
+const MIC_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 15C13.6569 15 15 13.6569 15 12V6C15 4.34315 13.6569 3 12 3C10.3431 3 9 4.34315 9 6V12C9 13.6569 10.3431 15 12 15Z" fill="currentColor"/><path d="M17 12C17 14.7614 14.7614 17 12 17C9.23858 17 7 14.7614 7 12H5C5 15.53 7.61 18.43 11 18.92V21H13V18.92C16.39 18.43 19 15.53 19 12H17Z" fill="currentColor"/></svg>';
+const DL_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 3C12.4971 3 12.9 3.40294 12.9 3.9V10.1H15.5C15.9 10.1 16.2 10.5 16 10.9L12.5 17.9C12.3 18.3 11.7 18.3 11.5 17.9L8 10.9C7.8 10.5 8.1 10.1 8.5 10.1H11.1V3.9C11.1 3.40294 11.5029 3 12 3Z" fill="currentColor"/><path d="M4 17C4.55228 17 5 17.4477 5 18V19H19V18C19 17.4477 19.4477 17 20 17C20.5523 17 21 17.4477 21 18V20C21 20.5523 20.5523 21 20 21H4C3.44772 21 3 20.5523 3 20V18C3 17.4477 3.44772 17 4 17Z" fill="currentColor"/></svg>';
+const UNDO_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M12.5 8C9.85 8 7.45 9.19 5.94 11.06L4 9.12C5.96 6.77 9.05 5.25 12.5 5.25C17.36 5.25 21.47 8.38 23 12.75C22.34 14.69 21.23 16.4 19.77 17.73L17.83 15.79C18.85 14.89 19.62 13.68 20 12.25C18.79 9.63 15.92 8 12.5 8ZM12.5 20.25C8.91 20.25 5.77 18.13 4.35 15.03L2.41 16.97C4.18 20.62 8.04 23.25 12.5 23.25C15.95 23.25 19.04 21.73 21 19.38L19.06 17.44C17.55 19.31 15.15 20.5 12.5 20.5V20.25Z" fill="currentColor"/></svg>';
+const SAVE_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" fill="currentColor"/></svg>';
+const BELL_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 22C13.1 22 14 21.1 14 20H10C10 21.1 10.9 22 12 22ZM18 16V11C18 7.93 16.36 5.36 13.5 4.68V4C13.5 3.17 12.83 2.5 12 2.5C11.17 2.5 10.5 3.17 10.5 4V4.68C7.63 5.36 6 7.92 6 11V16L4 18V19H20V18L18 16Z" fill="currentColor"/></svg>';
+const SELECT_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M9 16.17L4.83 12L3.41 13.41L9 19L21 7L19.59 5.59L9 16.17Z" fill="currentColor"/></svg>';
+const GRIP_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>';
+const WARN_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 2L1 21H23L12 2ZM12 6L19.53 19H4.47L12 6ZM11 10V14H13V10H11ZM11 16V18H13V16H11Z" fill="currentColor"/></svg>';
+const UP_SVG = '<svg viewBox="0 0 24 24" fill="none"><path d="M12 21C11.5029 21 11.1 20.5971 11.1 20.1V13.9H8.5C8.1 13.9 7.8 13.5 8 13.1L11.5 6.1C11.7 5.7 12.3 5.7 12.5 6.1L16 13.1C16.2 13.5 15.9 13.9 15.5 13.9H12.9V20.1C12.9 20.5971 12.4971 21 12 21Z" fill="currentColor"/><path d="M4 7C3.44772 7 3 6.55228 3 6V5H19V6C19 6.55228 19.4477 7 20 7C20.5523 7 21 6.55228 21 6V4C21 3.44772 20.5523 3 20 3H4C3.44772 3 3 3.44772 3 4V6C3 6.55228 3.44772 7 4 7Z" fill="currentColor"/></svg>';
+
+function projLabel(p) { return PROJS[p] || 'Other'; }
+function isCustomProj(p) { return !BASE_PROJS[p]; }
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function isISODate(s) { return /^\d{4}-\d{2}-\d{2}$/.test(s || ''); }
+function dlState(dl) {
+  if (!isISODate(dl)) return '';
+  if (dl < todayStr()) return 'overdue';
+  if (dl === todayStr()) return 'duetoday';
+  return '';
+}
+function fmtDl(dl) {
+  if (!dl) return '';
+  if (!isISODate(dl)) return dl;
+  const d = new Date(dl + 'T00:00:00');
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return days[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth() + 1);
+}
+
+function projOptions(current) {
+  let s = '';
+  PROJ_ORDER.forEach(k => { s += '<option value="' + k + '"' + (k === current ? ' selected' : '') + '>' + esc(PROJS[k]) + '</option>'; });
+  s += '<option value="__new__">+ New project...</option>';
+  return s;
+}
+
+function handleProjChange(id, sel) {
+  if (sel.value === '__new__') {
+    const name = prompt('New project / person name:');
+    if (name && name.trim()) {
+      const key = 'custom_' + Date.now();
+      PROJS[key] = name.trim();
+      PROJ_ORDER.push(key);
+      if (id === 'new') { save(); render(); const s2 = document.getElementById('newProj'); if (s2) s2.value = key; return; }
+      const it = items.find(i => i.id === id);
+      if (it) it.proj = key;
+      save(); render(); return;
+    }
+    save(); render(); return;
+  }
+  if (id === 'new') return;
+  const it = items.find(i => i.id === id);
+  if (it) { it.proj = sel.value; save(); render(); }
+}
+
+function stageSelect(id, current) {
+  let s = '<select class="stage-select" onchange="moveCat(' + id + ',this.value)" onclick="event.stopPropagation()" title="Move to stage">';
+  CATS.forEach(c => { s += '<option value="' + c.id + '"' + (c.id === current ? ' selected' : '') + '>' + c.label + '</option>'; });
+  return s + '</select>';
+}
+
+function filteredList() {
+  let list = items.filter(i => i.cat === activeCat);
+  if (filterProj !== 'all') list = list.filter(i => i.proj === filterProj);
+  if (filterPri !== 'all') list = list.filter(i => i.pri === filterPri);
+  if (searchQ) {
+    const q = searchQ.toLowerCase();
+    list = list.filter(i => i.txt.toLowerCase().includes(q) || projLabel(i.proj).toLowerCase().includes(q));
+  }
+  return list;
+}
+
+function render() {
+  const app = document.getElementById('app');
+  const doneCount = items.filter(i => i.cat === 'done').length;
+  const pct = items.length ? Math.round(doneCount / items.length * 100) : 0;
+  const overdue = items.filter(i => i.cat !== 'done' && dlState(i.dl) === 'overdue').length;
+  const dueToday = items.filter(i => i.cat !== 'done' && dlState(i.dl) === 'duetoday').length;
+
+  let html = '<div class="topbar">';
+  html += '<button class="undo-btn' + (lastDeleted ? ' show' : '') + '" onclick="undoDelete()">' + UNDO_SVG + ' Undo delete</button>';
+  html += '<button class="top-btn' + (selectMode ? ' active' : '') + '" onclick="toggleSelectMode()">' + SELECT_SVG + ' Select</button>';
+  html += '<span class="save-indicator" id="saveInd">' + SAVE_SVG + ' Saved</span>';
+  html += '</div>';
+
+  html += '<div class="progress"><span class="progress-label">' + doneCount + ' of ' + items.length + ' done</span><div class="progress-bar"><div class="progress-fill" style="width:' + pct + '%"></div></div><span class="progress-label">' + pct + '%</span></div>';
+
+  if (overdue > 0) html += '<div class="alert-banner">' + WARN_SVG + ' ' + overdue + ' overdue task' + (overdue > 1 ? 's' : '') + ' past their due date.</div>';
+  else if (dueToday > 0) html += '<div class="alert-banner today">' + WARN_SVG + ' ' + dueToday + ' task' + (dueToday > 1 ? 's' : '') + ' due today.</div>';
+
+  html += '<div class="tabs">';
+  CATS.forEach(c => {
+    const n = items.filter(i => i.cat === c.id).length;
+    html += '<button class="tab' + (activeCat === c.id ? ' active' : '') + '" onclick="setCat(\'' + c.id + '\')">' + c.label + ' <span class="count">' + n + '</span></button>';
+  });
+  html += '</div>';
+
+  html += '<div class="filter-row"><input class="search-input" placeholder="Search tasks..." value="' + escAttr(searchQ) + '" oninput="setSearch(this.value)"><select onchange="setFilterProj(this.value)"><option value="all">All projects</option>' + PROJ_ORDER.map(k => '<option value="' + k + '"' + (k === filterProj ? ' selected' : '') + '>' + esc(PROJS[k]) + '</option>').join('') + '</select><select onchange="setFilterPri(this.value)"><option value="all">All priorities</option><option value="p1"' + (filterPri === 'p1' ? ' selected' : '') + '>P1 only</option><option value="p2"' + (filterPri === 'p2' ? ' selected' : '') + '>P2 only</option><option value="p3"' + (filterPri === 'p3' ? ' selected' : '') + '>P3 only</option></select></div>';
+
+  const list = filteredList();
+
+  if (selectMode) {
+    const selCount = Object.keys(selected).filter(k => selected[k]).length;
+    html += '<div class="bulk-bar"><span>' + selCount + ' selected</span>';
+    html += '<select id="bulkMove"><option value="">Move to...</option>' + CATS.map(c => '<option value="' + c.id + '">' + c.label + '</option>').join('') + '</select>';
+    html += '<button onclick="bulkMove()">Apply</button>';
+    html += '<button class="danger" onclick="bulkDelete()">Delete selected</button>';
+    html += '<button onclick="selectAllVisible()">Select all shown</button>';
+    html += '</div>';
+  }
+
+  html += '<div class="list">';
+  if (!list.length) html += '<div class="empty">Nothing here. Add something below.</div>';
+  list.forEach(item => {
+    const isDone = item.cat === 'done';
+    const catIdx = CATS.findIndex(c => c.id === activeCat);
+    const prevCat = catIdx > 0 ? CATS[catIdx - 1] : null;
+    const nextCat = catIdx < CATS.length - 1 ? CATS[catIdx + 1] : null;
+    const dls = dlState(item.dl);
+    html += '<div class="item' + (isDone ? ' done' : '') + (selected[item.id] ? ' selected' : '') + '" data-id="' + item.id + '" draggable="' + (!selectMode) + '" ondragstart="onDragStart(event,' + item.id + ')" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,' + item.id + ')" ondragend="onDragEnd(event)">';
+    if (selectMode) {
+      html += '<button class="sel-box' + (selected[item.id] ? ' on' : '') + '" onclick="toggleSelect(' + item.id + ')">' + CHECK_SVG + '</button>';
+    } else {
+      html += '<button class="check' + (isDone ? ' on' : '') + '" onclick="toggleDone(' + item.id + ')">' + CHECK_SVG + '</button>';
+    }
+    html += '<div class="body">';
+    html += '<div class="txt">' + esc(item.txt) + '</div>';
+    html += '<div class="meta">';
+    html += '<button class="pri-btn ' + item.pri + '" onclick="cyclePri(' + item.id + ')" title="Tap to change priority">' + PRI[item.pri] + ' ▾</button>';
+    html += '<span class="tag ' + (isCustomProj(item.proj) ? 'custom' : item.proj) + '">' + esc(projLabel(item.proj)) + '</span>';
+    if (item.dl) html += '<span class="tag deadline ' + dls + '">' + esc(fmtDl(item.dl)) + (dls === 'overdue' ? ' — overdue' : dls === 'duetoday' ? ' — today' : '') + '</span>';
+    html += '<select onchange="handleProjChange(' + item.id + ',this)" onclick="event.stopPropagation()">' + projOptions(item.proj) + '</select>';
+    html += '<input type="date" value="' + (isISODate(item.dl) ? item.dl : '') + '" onchange="setDl(' + item.id + ',this.value)" onclick="event.stopPropagation()" title="Due date">';
+    html += '</div>';
+    if (editingId === item.id) {
+      html += '<div class="edit-row"><input id="edit-' + item.id + '" value="' + escAttr(item.txt) + '" onkeydown="if(event.key===\'Enter\')saveEdit(' + item.id + ')"><button class="add-btn" style="padding:6px 12px" onclick="saveEdit(' + item.id + ')">Save</button></div>';
+    }
+    html += '</div>';
+    html += '<div class="actions">';
+    if (!selectMode) {
+      html += '<span class="drag-handle" title="Drag to reorder">' + GRIP_SVG + '</span>';
+      if (prevCat) html += '<button class="icon-btn" onclick="moveCat(' + item.id + ',\'' + prevCat.id + '\')" title="' + prevCat.label + '">' + LEFT_SVG + '</button>';
+      html += stageSelect(item.id, activeCat);
+      if (nextCat) html += '<button class="icon-btn" onclick="moveCat(' + item.id + ',\'' + nextCat.id + '\')" title="' + nextCat.label + '">' + RIGHT_SVG + '</button>';
+      html += '<button class="icon-btn" onclick="startEdit(' + item.id + ')">' + EDIT_SVG + '</button>';
+      html += '<button class="icon-btn danger" onclick="delItem(' + item.id + ')">' + DEL_SVG + '</button>';
+    }
+    html += '</div></div>';
+  });
+  html += '</div>';
+
+  html += '<div class="add-row"><input type="text" id="newItem" placeholder="Add a new task..." onkeydown="if(event.key===\'Enter\')addItem()"><select id="newPri"><option value="p1">P1</option><option value="p2" selected>P2</option><option value="p3">P3</option></select><select id="newProj" onchange="handleProjChange(\'new\',this)">' + projOptions('studios') + '</select><input type="date" id="newDl" title="Due date (optional)"><button class="add-btn" onclick="addItem()">' + ADD_SVG + '</button><button class="mic-btn' + (recording ? ' recording' : '') + '" onclick="toggleMic()" title="Voice input">' + MIC_SVG + '</button></div>';
+  html += '<div class="mic-status' + ((recording || micStatus) ? ' show' : '') + (micError ? ' error' : '') + '">' + (recording ? 'Listening... speak now. Tap mic again to stop.' : esc(micStatus)) + '</div>';
+
+  html += '<div class="reminder-row">' + BELL_SVG + '<span>Nightly reminder</span><input type="time" value="' + remindTime + '" onchange="setRemindTime(this.value)"><button onclick="toggleReminder()">' + (remindEnabled ? 'On — tap to turn off' : 'Turn on') + '</button><span class="reminder-note">Sends a browser notification at this time each day with your overdue &amp; due-today count. Works while this tab is open; on open it catches up if the time has passed.</span></div>';
+
+  html += '<div class="export-row"><button class="export-btn" onclick="exportData()">' + DL_SVG + ' Export backup</button><button class="export-btn" onclick="document.getElementById(\'importFile\').click()">' + UP_SVG + ' Import backup</button><button class="export-btn danger" onclick="clearCompleted()">Clear completed</button></div>';
+
+  app.innerHTML = html;
+  if (editingId) { const inp = document.getElementById('edit-' + editingId); if (inp) inp.focus(); }
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+function escAttr(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+function setCat(c) { activeCat = c; editingId = null; selected = {}; save(); render(); }
+function setFilterProj(v) { filterProj = v; save(); render(); }
+function setFilterPri(v) { filterPri = v; save(); render(); }
+function setSearch(v) { searchQ = v; render(); const inp = document.querySelector('.search-input'); if (inp) { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); } }
+
+function toggleDone(id) { const it = items.find(i => i.id === id); if (it) { it.cat = it.cat === 'done' ? 'today' : 'done'; save(); render(); } }
+function moveCat(id, cat) { const it = items.find(i => i.id === id); if (it) { it.cat = cat; save(); render(); } }
+function cyclePri(id) { const it = items.find(i => i.id === id); if (it) { const idx = PRI_ORDER.indexOf(it.pri); it.pri = PRI_ORDER[(idx + 1) % 3]; save(); render(); } }
+function setDl(id, val) { const it = items.find(i => i.id === id); if (it) { if (val) it.dl = val; else delete it.dl; save(); render(); } }
+function startEdit(id) { editingId = id; render(); }
+function saveEdit(id) { const inp = document.getElementById('edit-' + id); const it = items.find(i => i.id === id); if (inp && it && inp.value.trim()) it.txt = inp.value.trim(); editingId = null; save(); render(); }
+function delItem(id) {
+  const idx = items.findIndex(i => i.id === id);
+  if (idx > -1) { lastDeleted = { item: items[idx], index: idx }; items.splice(idx, 1); save(); render(); }
+}
+function undoDelete() {
+  if (lastDeleted) { items.splice(Math.min(lastDeleted.index, items.length), 0, lastDeleted.item); lastDeleted = null; save(); render(); }
+}
+function clearCompleted() {
+  const n = items.filter(i => i.cat === 'done').length;
+  if (n === 0) return;
+  if (confirm('Clear ' + n + ' completed tasks? This cannot be undone.')) { items = items.filter(i => i.cat !== 'done'); save(); render(); }
+}
+function addItem() {
+  const inp = document.getElementById('newItem');
+  const v = inp.value.trim();
+  if (!v) return;
+  const projSel = document.getElementById('newProj');
+  const proj = projSel.value === '__new__' ? 'studios' : projSel.value;
+  const dlVal = document.getElementById('newDl').value;
+  const it = { id: nextId++, cat: activeCat === 'done' ? 'today' : activeCat, txt: v, pri: document.getElementById('newPri').value, proj: proj };
+  if (dlVal) it.dl = dlVal;
+  items.unshift(it);
+  micStatus = ''; micError = false;
+  save(); render();
+}
+
+/* ---- Multi-select ---- */
+function toggleSelectMode() { selectMode = !selectMode; selected = {}; render(); }
+function toggleSelect(id) { selected[id] = !selected[id]; render(); }
+function selectAllVisible() { filteredList().forEach(i => selected[i.id] = true); render(); }
+function bulkMove() {
+  const sel = document.getElementById('bulkMove');
+  if (!sel || !sel.value) return;
+  items.forEach(i => { if (selected[i.id]) i.cat = sel.value; });
+  selected = {}; save(); render();
+}
+function bulkDelete() {
+  const ids = Object.keys(selected).filter(k => selected[k]);
+  if (!ids.length) return;
+  if (!confirm('Delete ' + ids.length + ' selected tasks? This cannot be undone.')) return;
+  items = items.filter(i => !selected[i.id]);
+  selected = {}; save(); render();
+}
+
+/* ---- Drag & drop reorder ---- */
+function onDragStart(e, id) {
+  dragId = id;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.classList.add('dragging');
+}
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function onDrop(e, targetId) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (dragId === null || dragId === targetId) return;
+  const from = items.findIndex(i => i.id === dragId);
+  const to = items.findIndex(i => i.id === targetId);
+  if (from === -1 || to === -1) return;
+  const moved = items.splice(from, 1)[0];
+  items.splice(to, 0, moved);
+  dragId = null;
+  save(); render();
+}
+function onDragEnd(e) {
+  dragId = null;
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+}
+
+/* ---- Voice input (Web Speech API) ---- */
+function setMicStatus(msg, isErr) { micStatus = msg; micError = !!isErr; }
+function toggleMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    setMicStatus('Voice input is not supported in this browser. Use Chrome or Edge (and on Android, Chrome).', true);
+    render(); return;
+  }
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.protocol !== 'file:') {
+    setMicStatus('Voice input needs a secure (HTTPS) connection to access the microphone.', true);
+    render(); return;
+  }
+  if (recording) { try { recog.stop(); } catch(e) {} recording = false; render(); return; }
+  recog = new SR();
+  recog.continuous = true;
+  recog.interimResults = true;
+  recog.lang = 'en-NG';
+  let finalTxt = '';
+  recog.onresult = function(e) {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) finalTxt += e.results[i][0].transcript + ' ';
+      else interim += e.results[i][0].transcript;
+    }
+    const inp = document.getElementById('newItem');
+    if (inp) inp.value = (finalTxt + interim).trim();
+  };
+  recog.onerror = function(e) {
+    recording = false;
+    const msgs = {
+      'not-allowed': 'Microphone permission was blocked. Tap the lock/permission icon in your browser address bar and allow the mic, then try again.',
+      'service-not-allowed': 'Speech service not allowed. Check browser permissions.',
+      'no-speech': 'No speech detected. Try again and speak clearly.',
+      'audio-capture': 'No microphone found. Check that a mic is connected.',
+      'network': 'Speech service needs a network connection (Chrome sends audio to its servers).',
+      'aborted': ''
+    };
+    setMicStatus(msgs[e.error] !== undefined ? msgs[e.error] : 'Voice error: ' + e.error, e.error !== 'aborted');
+    render();
+  };
+  recog.onend = function() {
+    recording = false;
+    render();
+    const inp2 = document.getElementById('newItem');
+    if (inp2 && finalTxt.trim()) { inp2.value = finalTxt.trim(); inp2.focus(); }
+    if (!micStatus) setMicStatus('', false);
+  };
+  try {
+    recog.start();
+    recording = true;
+    setMicStatus('', false);
+    render();
+  } catch(err) {
+    setMicStatus('Could not start the microphone: ' + err.message, true);
+    render();
+  }
+}
+
+/* ---- Nightly reminder (Notification API) ---- */
+function summaryText() {
+  const overdue = items.filter(i => i.cat !== 'done' && dlState(i.dl) === 'overdue').length;
+  const dueToday = items.filter(i => i.cat !== 'done' && dlState(i.dl) === 'duetoday').length;
+  const openToday = items.filter(i => i.cat === 'today').length;
+  let parts = [];
+  if (overdue) parts.push(overdue + ' overdue');
+  if (dueToday) parts.push(dueToday + ' due today');
+  parts.push(openToday + ' on Today');
+  return parts.join(' · ');
+}
+function fireReminder() {
+  const body = summaryText();
+  lastRemindDate = todayStr();
+  save(); render();
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try { new Notification('Insight360 Tracker — evening check-in', { body: body }); } catch(e) {}
+  }
+  alert('Evening check-in: ' + body);
+}
+function checkReminder() {
+  if (!remindEnabled) return;
+  const now = new Date();
+  const hhmm = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+  if (hhmm >= remindTime && lastRemindDate !== todayStr()) fireReminder();
+}
+function toggleReminder() {
+  if (!remindEnabled) {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(function() {
+        remindEnabled = true; save(); render(); checkReminder();
+      });
+      return;
+    }
+    if ('Notification' in window && Notification.permission === 'denied') {
+      alert('Notifications are blocked in this browser. Enable them in site settings to get the nightly reminder as a notification. The in-app reminder will still work.');
+    }
+    remindEnabled = true; save(); render(); checkReminder();
+  } else {
+    remindEnabled = false; save(); render();
+  }
+}
+function setRemindTime(v) { if (v) { remindTime = v; save(); render(); } }
+setInterval(checkReminder, 30000);
+
+/* ---- Import / Export ---- */
+function exportData() {
+  const data = JSON.stringify({ items: items, customProjs: customProjs(), exportedAt: new Date().toISOString() }, null, 2);
+  const blob = new Blob([data], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'insight360-tracker-backup.json';
+  a.click();
+}
+document.getElementById('importFile').addEventListener('change', function(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = function() {
+    try {
+      const data = JSON.parse(reader.result);
+      const arr = Array.isArray(data) ? data : data.items;
+      if (!Array.isArray(arr) || !arr.every(i => i && typeof i.txt === 'string' && i.cat)) throw new Error('bad format');
+      if (!confirm('Import ' + arr.length + ' tasks? This replaces your current list.')) return;
+      items = arr.map((i, idx) => ({
+        id: typeof i.id === 'number' ? i.id : idx + 1,
+        cat: CATS.some(c => c.id === i.cat) ? i.cat : 'today',
+        txt: i.txt,
+        pri: PRI[i.pri] ? i.pri : 'p2',
+        proj: i.proj || 'other',
+        ...(i.dl ? { dl: i.dl } : {})
+      }));
+      if (data.customProjs) { Object.assign(PROJS, data.customProjs); PROJ_ORDER = Object.keys(PROJS); }
+      nextId = items.reduce((m, i) => Math.max(m, i.id), 0) + 1;
+      selected = {}; editingId = null;
+      save(); render();
+    } catch(err) {
+      alert('Import failed: that file is not a valid tracker backup.');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(f);
+});
+
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && lastDeleted && !e.target.matches('input,select,textarea')) {
+    e.preventDefault(); undoDelete();
+  }
+});
+
+load();
+render();
+setTimeout(checkReminder, 3000);
+</script>
+</body>
+</html>
