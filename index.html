@@ -465,6 +465,7 @@ function render() {
     if (item.dl) html += '<span class="tag deadline ' + dls + '">' + esc(fmtDl(item.dl)) + (dls === 'overdue' ? ' — overdue' : dls === 'duetoday' ? ' — today' : '') + '</span>';
     html += '<select onchange="handleProjChange(' + item.id + ',this)" onclick="event.stopPropagation()">' + projOptions(item.proj) + '</select>';
     html += '<input type="date" value="' + (isISODate(item.dl) ? item.dl : '') + '" onchange="setDl(' + item.id + ',this.value)" onclick="event.stopPropagation()" title="Due date">';
+    if (item.dl) html += '<button class="icon-btn" style="width:24px;height:24px;font-size:14px" onclick="clearDl(' + item.id + ')" title="Clear due date">&times;</button>';
     html += '</div>';
     if (editingId === item.id) {
       html += '<div class="edit-row"><input id="edit-' + item.id + '" value="' + escAttr(item.txt) + '" onkeydown="if(event.key===\'Enter\')saveEdit(' + item.id + ')"><button class="add-btn" style="padding:6px 12px" onclick="saveEdit(' + item.id + ')">Save</button></div>';
@@ -472,7 +473,7 @@ function render() {
     html += '</div>';
     html += '<div class="actions">';
     if (!selectMode) {
-      html += '<span class="drag-handle" title="Drag to reorder">' + GRIP_SVG + '</span>';
+      html += '<span class="drag-handle" title="Drag to reorder" ontouchstart="onHandleTouchStart(event,' + item.id + ')">' + GRIP_SVG + '</span>';
       if (prevCat) html += '<button class="icon-btn" onclick="moveCat(' + item.id + ',\'' + prevCat.id + '\')" title="' + prevCat.label + '">' + LEFT_SVG + '</button>';
       html += stageSelect(item.id, activeCat);
       if (nextCat) html += '<button class="icon-btn" onclick="moveCat(' + item.id + ',\'' + nextCat.id + '\')" title="' + nextCat.label + '">' + RIGHT_SVG + '</button>';
@@ -506,6 +507,7 @@ function toggleDone(id) { const it = items.find(i => i.id === id); if (it) { it.
 function moveCat(id, cat) { const it = items.find(i => i.id === id); if (it) { it.cat = cat; save(); render(); } }
 function cyclePri(id) { const it = items.find(i => i.id === id); if (it) { const idx = PRI_ORDER.indexOf(it.pri); it.pri = PRI_ORDER[(idx + 1) % 3]; save(); render(); } }
 function setDl(id, val) { const it = items.find(i => i.id === id); if (it) { if (val) it.dl = val; else delete it.dl; save(); render(); } }
+function clearDl(id) { const it = items.find(i => i.id === id); if (it) { delete it.dl; save(); render(); } }
 function startEdit(id) { editingId = id; render(); }
 function saveEdit(id) { const inp = document.getElementById('edit-' + id); const it = items.find(i => i.id === id); if (inp && it && inp.value.trim()) it.txt = inp.value.trim(); editingId = null; save(); render(); }
 function delItem(id) {
@@ -581,6 +583,48 @@ function onDragEnd(e) {
   e.currentTarget.classList.remove('dragging');
   document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
 }
+
+/* ---- Touch drag reorder (mobile) ---- */
+let touchDragId = null;
+let touchTargetId = null;
+function onHandleTouchStart(e, id) {
+  if (selectMode) return;
+  touchDragId = id;
+  touchTargetId = null;
+  const itemEl = e.target.closest('.item');
+  if (itemEl) itemEl.classList.add('dragging');
+  e.preventDefault();
+}
+document.addEventListener('touchmove', function(e) {
+  if (touchDragId === null) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  const el = document.elementFromPoint(t.clientX, t.clientY);
+  document.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+  const itemEl = el ? el.closest('.item') : null;
+  if (itemEl && Number(itemEl.dataset.id) !== touchDragId) {
+    touchTargetId = Number(itemEl.dataset.id);
+    itemEl.classList.add('drag-over');
+  } else {
+    touchTargetId = null;
+  }
+}, { passive: false });
+document.addEventListener('touchend', function() {
+  if (touchDragId === null) return;
+  document.querySelectorAll('.dragging,.drag-over').forEach(x => x.classList.remove('dragging', 'drag-over'));
+  if (touchTargetId !== null && touchTargetId !== touchDragId) {
+    const from = items.findIndex(i => i.id === touchDragId);
+    const to = items.findIndex(i => i.id === touchTargetId);
+    if (from > -1 && to > -1) {
+      const moved = items.splice(from, 1)[0];
+      items.splice(to, 0, moved);
+      save();
+    }
+  }
+  touchDragId = null;
+  touchTargetId = null;
+  render();
+});
 
 /* ---- Voice input (Web Speech API) ---- */
 function setMicStatus(msg, isErr) { micStatus = msg; micError = !!isErr; }
